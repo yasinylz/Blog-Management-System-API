@@ -1,4 +1,3 @@
-// user.ts
 import { Router } from 'express';
 const router = Router();
 import { 
@@ -9,12 +8,13 @@ import {
   updateUser, 
   deleteUser 
 } from '../controllers/userControllers';
-import { authenticateUser } from '../middlewares/authenticateUser';
+import { authenticateUser, authorizeRoles } from '../middlewares/authenticateUser';
 
-router.post('/register', registerUser);
+router.post('/register',registerUser);
 router.post('/login', loginUser);
-router.get('/', authenticateUser,getAllUsers);
-router.get('/:id', authenticateUser,getUserById);
-router.put('/:id', authenticateUser,updateUser);
-router.delete('/:id',authenticateUser, deleteUser);
+router.get('/',  authenticateUser,authorizeRoles(["author", "admin"]),getAllUsers);  // Tüm kullanıcıları listeleme
+router.get('/:id',  authenticateUser,authorizeRoles(["author", "admin"]), getUserById);  // "user" ve "admin" yetkisi ile kullanıcı bilgisi
+router.put('/:id',  authenticateUser,authorizeRoles(["author", "admin"]), updateUser);  // "user" ve "admin" yetkisi ile kullanıcı bilgisi güncelleme
+router.delete('/:id', authenticateUser, authorizeRoles(["admin"]), deleteUser);  // Yalnızca "admin" yetkisi ile kullanıcı silme
+
 export default router;
