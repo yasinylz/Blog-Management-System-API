@@ -1,22 +1,21 @@
-import mongoose,{Schema,Document} from "mongoose";
-interface IPost extends Document{
-    title:string,
-    content:string,
-    image?:string,
-    video?:string
-    author:string,
-    createdAt:Date,
-    updatedAt:Date
+import mongoose, { Schema, Document } from 'mongoose';
+
+interface IPost extends Document {
+  title: string;
+  content: string;
+  author: string;
+  image?: string;
+  video?: string;
+  category: mongoose.Types.ObjectId; // Kategori bağlantısı
 }
 
-const postSchema: Schema = new Schema({
-    title:{type:String, required:true},
-    content:{type:String, required:true},
-    image:{type:String},
-    video:{type:String},
-    author:{type:String, required:true},
-   
-},{timestamps:true});
+const PostSchema: Schema = new Schema({
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  author: { type: String, required: true },
+  image: { type: String },
+  video: { type: String },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true }, // İlişki tanımı
+}, { timestamps: true });
 
-const Post=mongoose.model<IPost>('Post',postSchema)
-export default Post;
+export default mongoose.model<IPost>('Post', PostSchema);

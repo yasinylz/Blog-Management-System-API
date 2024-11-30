@@ -2,55 +2,60 @@ import { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import  Post  from '../models/Post';  // Post modelinizi uygun şekilde import edin
 import fs from 'fs';
+import {Category} from'../models/Category';
 import { RequestHandler } from 'express';
+import { promises } from 'dns';
 
-export const createPost = async (req: Request, res: Response, next: Function) => {
-  const { title, content, author } = req.body;
+export const createPost = async (req: Request, res: Response, next: NextFunction):Promise<void>=> {
+  const { title, content, author, categorName } = req.body;
   const file = req.file;
 
   try {
+    // Kategori doğrulama
+    const category = await Category.findById({name:categorName});
+    if (!category) {
+       res.status(404).json({ message: "Category not found" });return
+    }
+
     let imagePath: string | undefined = undefined;
     let videoPath: string | undefined = undefined;
 
-    // Dosya türüne göre doğru dosya yolunu oluştur
     if (file) {
-      const uploadDir = path.join(__dirname, '..', 'uploads');  // 'uploads' dizininin tam yolu
+      const uploadDir = path.join(__dirname, '..', 'uploads');
       const filePath = path.join(uploadDir, file.mimetype.startsWith('image/') ? 'images' : 'videos', file.filename);
 
-      // Eğer resimse
       if (file.mimetype.startsWith('image/')) {
         imagePath = filePath;
-      }
-      // Eğer video ise
-      else if (file.mimetype.startsWith('video/')) {
+      } else if (file.mimetype.startsWith('video/')) {
         videoPath = filePath;
       }
     }
 
-    // Yeni post oluştur
     const newPost = new Post({
       title,
       content,
       author,
+      category:category.id,
       image: imagePath,
-      video: videoPath
+      video: videoPath,
     });
 
-    // Postu kaydet
     await newPost.save();
     res.status(201).json({ message: "Post created successfully", post: newPost });
   } catch (error) {
-    res.status(400).json({ error });
+    res.status(500).json({ error });
   }
 };
-export const getPosts = async (req: Request, res: Response, next: Function) => { 
-    try {
-      const posts = await Post.find();
-      res.status(200).json({ posts: posts });
-    } catch (error) {
-      res.status(400).json({ error });
-    }
+
+export const getPosts = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const posts = await Post.find().populate('categoryId', 'name'); // Kategori bilgisiyle birlikte
+    res.status(200).json({ posts });
+  } catch (error) {
+    res.status(500).json({ error });
   }
+};
+
 
 
   export const deletePosts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -95,7 +100,7 @@ export const getPosts = async (req: Request, res: Response, next: Function) => {
   };
   
 
-// Post için bir interface tanımlayın
+// Post için bir interface tanımlayıns
 interface IPost {
   _id: string;
   title: string;
@@ -119,76 +124,64 @@ interface MulterFile {
   buffer: Buffer;
 }
 
-
-export const updatePost = async (
-  req: Request,
-  res: Response,
-  next: Function
-): Promise<void> => {
+export const updatePost = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
-  const { title, content, author } = req.body;
-  const file = req.file as MulterFile | undefined;
+  const { title, content, author, categorName } = req.body;
+  const file = req.file;
 
   try {
-    const post = (await Post.findById(id)) as IPost | null;
+    const post = await Post.findById(id);
     if (!post) {
-      res.status(404).json({ message: "No post found" });
-      return; // Hata durumunda `return` ile çıkıyoruz
+       res.status(404).json({ message: "No post found" });return
     }
 
-    let imagePath = post.image;
-    let videoPath = post.video;
+    if (categorName) {
+      const category = await Category.findOne({name:categorName});
+      if (!category) {
+         res.status(404).json({ message: "Category not found" });return
+      }
+      post.category = category.id;
+    }
 
     if (file) {
-      if (file.mimetype.startsWith("image/")) {
+      const uploadDir = path.join(__dirname, '..', 'uploads');
+      const filePath = path.join(uploadDir, file.mimetype.startsWith('image/') ? 'images' : 'videos', file.filename);
+
+      if (file.mimetype.startsWith('image/')) {
         if (post.image) {
-          try {
-            await fs.promises.unlink(post.image);
-          } catch (error) {
-            console.error(`Failed to delete old image file: ${error}`);
-          }
+          await fs.promises.unlink(post.image);
         }
-        imagePath = path.join(__dirname, '..', 'uploads/images', file.filename);
-      } else if (file.mimetype.startsWith("video/")) {
+        post.image = filePath;
+      } else if (file.mimetype.startsWith('video/')) {
         if (post.video) {
-          try {
-            await fs.promises.unlink(post.video);
-          } catch (error) {
-            console.error(`Failed to delete old video file: ${error}`);
-          }
+          await fs.promises.unlink(post.video);
         }
-        videoPath = path.join(__dirname, '..', 'uploads/videos', file.filename);
+        post.video = filePath;
       }
     }
 
     post.title = title;
     post.content = content;
     post.author = author;
-    post.image = imagePath;
-    post.video = videoPath;
 
     await post.save();
-
     res.status(200).json({ message: "Post updated successfully", post });
   } catch (error) {
-    console.error("Error updating post:", error);
-    res.status(500).json({ error: "An error occurred while updating the post" });
+    res.status(500).json({ error });
   }
 };
 
 
-export const getPostById = async(req:Request,res:Response): Promise<void> =>{
-const {id}=req.params
-try {
-  const post=(await Post.findById(id))as  IPost
-  if (!post) {
-     res.status(404).json({ message: "No post found" });
-     return
+export const getPostById = async (req: Request, res: Response)=> {
+  const { id } = req.params;
+
+  try {
+    const post = await Post.findById(id).populate('categoryId', 'name'); // Kategori detaylarıyla
+    if (!post) {
+       res.status(404).json({ message: "No post found" });return
+    }
+    res.status(200).json({ post });
+  } catch (error) {
+    res.status(500).json({ error });
   }
-res.status(200).json({ message:post});
-
-} catch  (error){
-  res.status(500).json({ error});
-}
-
-}
+};
