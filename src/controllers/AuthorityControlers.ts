@@ -14,7 +14,7 @@ export const addRoleToUser = async (req: Request, res: Response): Promise<void> 
     }
 
     // Rolün Role modelinde olup olmadığını kontrol et
-    const existingRole = await Role.findById(role);
+    const existingRole = await Role.findById({name: { $in: role}} );
     if (!existingRole) {
       res.status(400).json({ message: "Role does not exist in the system" });
       return;
