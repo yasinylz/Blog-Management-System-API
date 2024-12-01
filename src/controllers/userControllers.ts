@@ -1,19 +1,22 @@
-import  {Request, Response} from 'express'
+import  {NextFunction, Request, Response} from 'express'
 import bcrypt from 'bcryptjs';
 import User from '../models/User'
 import Role from '../models/Role';
 import { generateToken } from '../utils/jwtUtils';
+import { AppError } from "../utils/appError";
 
 
 
-export const registerUser = async (req: Request, res: Response): Promise<void> => {
+
+export const registerUser = async (req: Request, res: Response,next:NextFunction): Promise<void> => {
   const { name, email, password, ...options } = req.body;
   try {
     // Kullanıcı zaten var mı diye kontrol et
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      res.status(400).json({ message: 'User already exists' });
-      return;
+    
+      return next(new AppError('User already exists', 400));
+
     }
 
     // Şifreyi hash'le
@@ -39,34 +42,40 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     res.status(201).json({ message: 'User registered successfully', user: newUser });
   } catch (error) {
-    console.error('Error registering user:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(':', error);
+   
+    return next(new AppError('Error registering user', 400));
+
   }
 };
 
   export interface CustomRequest extends Request {
     user?: { id: string; email: string }; // Kullanıcı bilgisi burada özelleştirildi
   }
-  export const loginUser = async (req: CustomRequest, res: Response) => {
+  export const loginUser = async (req: CustomRequest, res: Response,next:NextFunction) => {
     const { email, password } = req.body;
   
     try {
       const user = await User.findOne({ email }).populate('roles');  // Kullanıcıyı email ile bul ve rollerini doldur
       if (!user) {
-        res.status(404).json({ message: 'User not found' });
-        return;
+      
+    return next(new AppError('User not found', 400));
+
+        
       }
   
       const isMatch = await bcrypt.compare(password, user.password); // Şifre kontrolü
       if (!isMatch) {
-        res.status(400).json({ message: 'Invalid password' });
-        return;
+       
+    return next(new AppError('Invalid password', 400));
+
       }
   
       // `roles` kontrolü ve dönüştürme
       if (!user.roles || !Array.isArray(user.roles)) {
-        res.status(500).json({ message: 'User roles are not defined or invalid' });
-        return;
+      
+    return next(new AppError('User roles are not defined or invalid', 400));
+
       }
   
       console.log('User roles:', user.roles);  // Roller doğru geliyor mu kontrol et
@@ -80,8 +89,8 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   
       res.json({ message: 'User logged in', token });
     } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      return next(new AppError('internel server  ', 500));
+
     }
   };
   
@@ -89,39 +98,40 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   
 
 
-export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
+export const getAllUsers = async (req: Request, res: Response,next:NextFunction): Promise<void> => {
   try {
     // Kullanıcıları ve rollerini almak için populate kullan
     const users = await User.find().populate('roles', 'name -_id').select('-password');  // roles alanını 'name' ile popüle et, _id'yi hariç tut
 
     res.status(200).json(users);
   } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return next(new AppError('internel server  ', 500));
+
   }
 };
-export const getUserById = async (req: Request, res: Response): Promise<void>  => {
+export const getUserById = async (req: Request, res: Response,next:NextFunction): Promise<void>  => {
   try {
     const userId = req.params.id;
 
     const user = await User.findById(userId).populate('roles'); // "roles" alanını doldur
     if (!user) {
-       res.status(404).json({ message: 'User not found' });return
+      return next(new AppError('User not  found', 404));
+
     }
 
     res.status(200).json(user);
   } catch (error) {
-    console.error('Error fetching user by ID:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return next(new AppError('internel server  ', 500));
+
   }
 };
-export const updateUser = async (req: Request, res: Response): Promise<void> => {
+export const updateUser = async (req: Request, res: Response,next:NextFunction): Promise<void> => {
     const { id } = req.params;
     const body = req.body;
   
     if (!id) {
-      res.status(400).json({ message: 'User ID is required' });
-      return;
+      return next(new AppError('User  ID  is required', 404));
+
     }
   
     try {
@@ -139,27 +149,29 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
   
       // Kullanıcı bulunamazsa
       if (!updatedUser) {
-        res.status(404).json({ message: 'User not found' });
-        return;
+        return next(new AppError('User not  found', 404));
+
       }
   
       // Güncellenmiş kullanıcıyı döndür
       res.status(200).json(updatedUser);
     } catch (error) {
       console.error('Error updating user:', error); // Hata loglama
-      res.status(500).json({ message: 'An error occurred while updating user', error });
+      return next(new AppError('internel server  ', 500));
+
     }
   };
-export const deleteUser=async(req:Request,res:Response):Promise<void>=>{
+export const deleteUser=async(req:Request,res:Response,next:NextFunction):Promise<void>=>{
     const {id}=req.params;
     try {
     const deletedUser = await User.findByIdAndDelete(id);
     if (!deletedUser) {
-       res.status(404).json({ message: 'User not found' });
-       return
+      return next(new AppError('User not  found', 404));
+
     }
     res.status(200).json({ message: 'User deleted' });
     } catch (error) {
-        res.status(500).json({ error });
+      return next(new AppError('internel server  ', 500));
+
     }
 }

@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwtUtils";
 import Role from "../models/Role";
+import { AppError } from "../utils/appError";
+
 
 interface User {
   id: string;
@@ -25,7 +27,7 @@ export const authenticateUser = (req: CustomRequest, res: Response, next: NextFu
     req.user = decoded;  // Token doğrulandı, kullanıcıyı ekliyoruz
     next();
   } catch (error) {
-    res.status(401).json({ message: "Invalid or expired token" });
+     next(new AppError('No token provided', 401));
   }
 };
 
@@ -75,9 +77,9 @@ export const authorizeRoles = (roles: string[]) => {
       res.status(403).json({ message: 'Unauthorized: User does not have the required role' });
 
     } catch (error) {
-      // Hata varsa, error middleware'e yönlendir
-      console.error("Error in authorizeRoles:", error);
-      next(error);
+     next(new AppError('Error in authorizeRoles', 401));
+
+     
     }
   };
 };

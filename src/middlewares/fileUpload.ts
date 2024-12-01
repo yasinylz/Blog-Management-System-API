@@ -1,16 +1,20 @@
 import multer from 'multer';
 import path from 'path';
 import { Request, Response } from 'express';
+import { AppError } from "../utils/appError";
+
 
 const storage = multer.diskStorage({
-  destination: (req: Request, file: Express.Multer.File, cb: Function) => {
+  destination: (req: Request, file: Express.Multer.File, next: Function) => {
     const serverURL = 'http://localhost:5000'; 
     if (file.mimetype.startsWith('image/')) {
-      cb(null, path.join(__dirname, '../uploads/images')); // Resimler için 'uploads/images'
+      next(null, path.join(__dirname, '../uploads/images')); // Resimler için 'uploads/images'
     } else if (file.mimetype.startsWith('video/')) {
-      cb(null, path.join(__dirname, '../uploads/videos')); // Videolar için 'uploads/videos'
+      next(null, path.join(__dirname, '../uploads/videos')); // Videolar için 'uploads/videos'
     } else {
-      cb(new Error('Desteklenmeyen dosya türü!'), false);
+     
+      return next(new AppError('Desteklenmeyen dosya türü!', 401));
+
     }
   },
   filename: (req, file, cb) => {
@@ -20,12 +24,14 @@ const storage = multer.diskStorage({
   }
 });
 
-const fileFilter = (req: Request, file: Express.Multer.File, cb: Function) => {
+const fileFilter = (req: Request, file: Express.Multer.File, next: Function) => {
   const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4'];
   if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
+    next(null, true);
   } else {
-    cb(new Error('Desteklenmeyen dosya türü!'), false);
+    
+    return next(new AppError('Desteklenmeyen dosya türü!', 401));
+
   }
 };
 

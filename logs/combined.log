@@ -1,0 +1,4 @@
+[2024-12-01T22:46:44.462Z] info: ::1 - - [01/Dec/2024:22:46:44 +0000] "POST /api/user/login HTTP/1.1" 200 288 "-" "PostmanRuntime/7.43.0"
+[2024-12-01T22:47:22.960Z] info: ::1 - - [01/Dec/2024:22:47:22 +0000] "GET /api/user HTTP/1.1" 200 304 "-" "PostmanRuntime/7.43.0"
+[2024-12-01T22:49:03.759Z] error: No token provided
+[2024-12-01T22:49:03.771Z] info: ::1 - - [01/Dec/2024:22:49:03 +0000] "GET /api/user HTTP/1.1" 401 48 "-" "PostmanRuntime/7.43.0"
