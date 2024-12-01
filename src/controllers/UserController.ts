@@ -1,9 +1,11 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import User from '../models/User';
 import Post from '../models/Post';
+import { AppError } from "../utils/appError";
+
 
 // Kullanıcı bilgilerini ve postlarını getir
-export const getUserInfoAndPosts = async (req: any, res: Response):Promise<any> => {
+export const getUserInfoAndPosts = async (req: any, res: Response,next:NextFunction):Promise<any> => {
   try {
     // JWT'den gelen userId'yi al
     const { userId } = req.user;
@@ -11,7 +13,8 @@ export const getUserInfoAndPosts = async (req: any, res: Response):Promise<any> 
     // Kullanıcı bilgilerini al
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'Kullanıcı bulunamadı' });
+      return next(new AppError('Kullanıcı  bulunamadı', 404));
+
     }
 
     // Kullanıcının yaptığı postları al
@@ -29,6 +32,7 @@ export const getUserInfoAndPosts = async (req: any, res: Response):Promise<any> 
       posts: posts,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Bir hata oluştu', error });
+    return next(new AppError('Bir  hata  oluştu', 400));
+
   }
 };

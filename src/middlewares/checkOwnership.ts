@@ -1,5 +1,7 @@
 import { Response,Request,NextFunction } from "express";
 import Post from "../models/Post";
+import { AppError } from "../utils/appError";
+
 export interface CustomRequest extends Request {
     user?: { id: string; email: string }; // Kullanıcı bilgisi burada özelleştirildi
   }
@@ -9,15 +11,20 @@ try {
     const userId=req.user?.id;
     const  post=await Post.findById(postId);
     if (!post) {
-         res.status(404).json({ message: "Post not found" });return
+         
+    return next(new AppError('Post not found', 404));
+
     }
     if(post.author.toString()!==userId) {
-        res.status(403).json({ message: "You are not authorized to perform this action" });
-        return;
+       
+    return next(new AppError('You are not authorized to perform this action', 403));
+
     }
     next();
 } catch (error) {
     console.error("Error in ownership check:", error);
-    res.status(500).json({ message: "Internal server error" });
-}
-}
+  
+    return next(new AppError('Internal server error', 500));
+
+    
+}}

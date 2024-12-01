@@ -3,8 +3,9 @@ import path from 'path';
 import  Post  from '../models/Post';  // Post modelinizi uygun şekilde import edin
 import fs from 'fs';
 import {Category} from'../models/Category';
-import { RequestHandler } from 'express';
-import { promises } from 'dns';
+
+import { AppError } from "../utils/appError";
+
 
 export const createPost = async (req: Request, res: Response, next: NextFunction):Promise<void>=> {
   const { title, content, author, categorName } = req.body;
@@ -14,7 +15,10 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
     // Kategori doğrulama
     const category = await Category.findById({name:categorName});
     if (!category) {
-       res.status(404).json({ message: "Category not found" });return
+       
+    return next(new AppError('Category not found', 404));
+
+
     }
 
     let imagePath: string | undefined = undefined;
@@ -43,7 +47,8 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
     await newPost.save();
     res.status(201).json({ message: "Post created successfully", post: newPost });
   } catch (error) {
-    res.status(500).json({ error });
+       return next(new AppError('An error occurred', 500));
+
   }
 };
 
@@ -52,7 +57,8 @@ export const getPosts = async (req: Request, res: Response, next: NextFunction) 
     const posts = await Post.find().populate('categoryId', 'name'); // Kategori bilgisiyle birlikte
     res.status(200).json({ posts });
   } catch (error) {
-    res.status(500).json({ error });
+    return next(new AppError('An error occurred', 500));
+
   }
 };
 
@@ -64,8 +70,8 @@ export const getPosts = async (req: Request, res: Response, next: NextFunction) 
     try {
       const post = await Post.findById(id);
       if (!post) {
-        res.status(404).json({ message: "Post not found" });
-        return; // İşlem devam etmesin
+        return next(new AppError('Post not found', 404));
+
       }
   
       // Dosya yollarını belirleyin
@@ -95,7 +101,8 @@ export const getPosts = async (req: Request, res: Response, next: NextFunction) 
   
       res.status(200).json({ message: "Post deleted successfully" });
     } catch (error) {
-      next(error); // Hata yakalama
+      return next(new AppError('An error occurred', 500));
+
     }
   };
   
@@ -132,13 +139,15 @@ export const updatePost = async (req: Request, res: Response, next: NextFunction
   try {
     const post = await Post.findById(id);
     if (!post) {
-       res.status(404).json({ message: "No post found" });return
+      return next(new AppError('Post not found', 404));
+
     }
 
     if (categorName) {
       const category = await Category.findOne({name:categorName});
       if (!category) {
-         res.status(404).json({ message: "Category not found" });return
+        return next(new AppError('Category not found', 404));
+
       }
       post.category = category.id;
     }
@@ -167,21 +176,24 @@ export const updatePost = async (req: Request, res: Response, next: NextFunction
     await post.save();
     res.status(200).json({ message: "Post updated successfully", post });
   } catch (error) {
-    res.status(500).json({ error });
+    return next(new AppError('An error occurred', 500));
+
   }
 };
 
 
-export const getPostById = async (req: Request, res: Response)=> {
+export const getPostById = async (req: Request, res: Response,next:NextFunction)=> {
   const { id } = req.params;
 
   try {
     const post = await Post.findById(id).populate('categoryId', 'name'); // Kategori detaylarıyla
     if (!post) {
-       res.status(404).json({ message: "No post found" });return
+      return next(new AppError('Post not found', 404));
+
     }
     res.status(200).json({ post });
   } catch (error) {
-    res.status(500).json({ error });
+    return next(new AppError('An error occurred', 500));
+
   }
 };
