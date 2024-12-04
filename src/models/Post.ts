@@ -17,5 +17,7 @@ const PostSchema: Schema = new Schema({
   video: { type: String },
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true }, // İlişki tanımı
 }, { timestamps: true });
+PostSchema.index({ category: 1 });
+PostSchema.index({ title: 'text' });
 
 export default mongoose.model<IPost>('Post', PostSchema);

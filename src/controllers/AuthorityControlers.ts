@@ -43,9 +43,10 @@ export const addRoleToUser = async (req: Request, res: Response,next:NextFunctio
 // Kullanıcının rollerini görüntüleme
 export const getUserRoles = async (req: Request, res: Response,next:NextFunction): Promise<void> => {
   const { userId } = req.params;
+  const  {limit=10,page=1}=req.query;
 
   try {
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).limit(Number(limit)).skip((Number(page)-1)*Number(limit))
     if (!user) {
      
       return next(new AppError('Kullanıcı bulunamadı', 404));
@@ -58,3 +59,5 @@ export const getUserRoles = async (req: Request, res: Response,next:NextFunction
 
   }
 };
+
+//not:redis ve indexleme  yapılacak,dokümantasyon ve test  işlemleri de  yapıalcak  ,sonra da  mikroservis  mimarilerine  bakılacak  

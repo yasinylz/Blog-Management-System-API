@@ -5,8 +5,10 @@ import { AppError } from "../utils/appError";
 
 // Tüm Rolleri Görüntüle
 export const getAllRoles = async (req: Request, res: Response,next:NextFunction): Promise<void> => {
+  const  {limit=10,page=1}=req.query;
+
   try {
-    const roles = await Role.find();
+    const roles = await Role.find().limit(Number(limit)).skip((Number(page) - 1)*Number(limit));
     res.status(200).json(roles);
   } catch (error) {
   

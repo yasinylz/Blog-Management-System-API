@@ -6,8 +6,9 @@ import Routers from './routes/index';
 import config from './config';
 import { globalErrorHandler } from './middlewares/globalErrorHandler';
 import logger from './config/logger';
+import redisClient from './config/redis';
 const app = express();
-
+redisClient.connect();
 // JSON verilerini almak için middleware
 app.use(express.json());
 app.use(
