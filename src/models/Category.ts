@@ -8,6 +8,7 @@ interface ICategory extends Document{
 const  categorySchema=new  Schema({
     name:{type:String, required:true, unique:true}
 },{timestamps:true})
+categorySchema.index({ name: 1 }, { unique: true });
 
 export const  Category=model<ICategory>('Category',categorySchema)
 

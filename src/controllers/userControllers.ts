@@ -99,9 +99,10 @@ export const registerUser = async (req: Request, res: Response,next:NextFunction
 
 
 export const getAllUsers = async (req: Request, res: Response,next:NextFunction): Promise<void> => {
+  const  {limit=10,page=1}=req.query;
   try {
     // Kullanıcıları ve rollerini almak için populate kullan
-    const users = await User.find().populate('roles', 'name -_id').select('-password');  // roles alanını 'name' ile popüle et, _id'yi hariç tut
+    const users = await User.find().populate('roles', 'name -_id').select('-password').limit(Number(limit)).skip((Number(page)-1)*Number(limit)) // roles alanını 'name' ile popüle et, _id'yi hariç tut
 
     res.status(200).json(users);
   } catch (error) {

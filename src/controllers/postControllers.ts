@@ -53,8 +53,9 @@ export const createPost = async (req: Request, res: Response, next: NextFunction
 };
 
 export const getPosts = async (req: Request, res: Response, next: NextFunction) => {
+  const  {limit=10,page=1}=req.query;
   try {
-    const posts = await Post.find().populate('categoryId', 'name'); // Kategori bilgisiyle birlikte
+    const posts = await Post.find().populate('categoryId', 'name').limit(Number(limit)).skip((Number(page)-1)*Number(limit)) // Kategori bilgisiyle birlikte
     res.status(200).json({ posts });
   } catch (error) {
     return next(new AppError('An error occurred', 500));

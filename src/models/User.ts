@@ -46,6 +46,7 @@ UserSchema.pre('save', async function (next) {
   }
   next();
 });
-
+UserSchema.index({email:1})
+UserSchema.index({"address.city":1})
 const User: Model<IUser> = mongoose.model<IUser>("User", UserSchema);
 export default User;

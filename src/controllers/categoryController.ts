@@ -22,8 +22,9 @@ export const createCategory= async(req:Request,res:Response,next:NextFunction)=>
     }
 }
 export const  viewCategory = async(req:Request,res:Response,next:NextFunction)=>{
+    const {limit=10,page=1}=req.query;
     try {
-        const  category=await Category.find({})
+        const  category=await Category.find({}).limit(Number(limit)).skip((Number(page)-1)*Number(limit))
         res.json({category})
     } catch (error) {
         return next(new AppError('Bir  Hata  Oluştu', 400));
