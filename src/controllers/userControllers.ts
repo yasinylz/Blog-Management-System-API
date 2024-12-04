@@ -4,6 +4,7 @@ import User from '../models/User'
 import Role from '../models/Role';
 import { generateToken } from '../utils/jwtUtils';
 import { AppError } from "../utils/appError";
+import { getCache, setCache } from '../utils/redisUtils';
 
 
 
@@ -99,15 +100,34 @@ export const registerUser = async (req: Request, res: Response,next:NextFunction
 
 
 export const getAllUsers = async (req: Request, res: Response,next:NextFunction): Promise<void> => {
-  const  {limit=10,page=1}=req.query;
+  const cacheKey = 'users:list';
+
   try {
-    // Kullanıcıları ve rollerini almak için populate kullan
-    const users = await User.find().populate('roles', 'name -_id').select('-password').limit(Number(limit)).skip((Number(page)-1)*Number(limit)) // roles alanını 'name' ile popüle et, _id'yi hariç tut
+    // Redis'te kullanıcıları kontrol et
+    const cachedUsers = await getCache(cacheKey);
 
-    res.status(200).json(users);
-  } catch (error) {
-    return next(new AppError('internel server  ', 500));
+    if (cachedUsers) {
+       res.status(200).json({
+        fromCache: true,
+        data: cachedUsers,
+      });
 
+      return;
+    }
+
+    // Redis'te yoksa veritabanından al
+    const users = await User.find();
+
+    // Redis'e kaydet
+    await setCache(cacheKey, users);
+
+    res.status(200).json({
+      fromCache: false,
+      data: users,
+    });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
   }
 };
 export const getUserById = async (req: Request, res: Response,next:NextFunction): Promise<void>  => {

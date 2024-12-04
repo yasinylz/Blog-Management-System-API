@@ -5,6 +5,6 @@ import redisCache from '../middlewares/redisCache';
 const router = express.Router();
 
 // Örnek endpoint, Redis cache kontrolü yapar
-router.get('/example', redisCache('example:data'), getExampleData);
+router.get('/', redisCache('example:data'), getExampleData);
 
 export default router;

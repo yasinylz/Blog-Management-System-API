@@ -5,53 +5,33 @@ import fs from 'fs';
 import {Category} from'../models/Category';
 
 import { AppError } from "../utils/appError";
+import { setCache } from '../utils/redisUtils';
 
-
-export const createPost = async (req: Request, res: Response, next: NextFunction):Promise<void>=> {
-  const { title, content, author, categorName } = req.body;
-  const file = req.file;
-
+export const createPost = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Kategori doğrulama
-    const category = await Category.findById({name:categorName});
-    if (!category) {
-       
-    return next(new AppError('Category not found', 404));
+    const { title, content, category } = req.body;
 
-
-    }
-
-    let imagePath: string | undefined = undefined;
-    let videoPath: string | undefined = undefined;
-
-    if (file) {
-      const uploadDir = path.join(__dirname, '..', 'uploads');
-      const filePath = path.join(uploadDir, file.mimetype.startsWith('image/') ? 'images' : 'videos', file.filename);
-
-      if (file.mimetype.startsWith('image/')) {
-        imagePath = filePath;
-      } else if (file.mimetype.startsWith('video/')) {
-        videoPath = filePath;
-      }
-    }
-
+    // Yeni bir gönderi oluşturma
     const newPost = new Post({
       title,
       content,
-      author,
-      category:category.id,
-      image: imagePath,
-      video: videoPath,
+      category,
     });
-
     await newPost.save();
-    res.status(201).json({ message: "Post created successfully", post: newPost });
-  } catch (error) {
-       return next(new AppError('An error occurred', 500));
 
+    // Redis önbelleğine kaydet
+    const cacheKey = `post:${newPost._id}`;
+    await setCache(cacheKey, newPost);
+
+    res.status(201).json({
+      message: 'Post created and cached successfully',
+      data: newPost,
+    });
+  } catch (err) {
+    console.error('Error creating post:', err);
+    res.status(500).json({ error: 'Failed to create post' });
   }
 };
-
 export const getPosts = async (req: Request, res: Response, next: NextFunction) => {
   const  {limit=10,page=1}=req.query;
   try {
